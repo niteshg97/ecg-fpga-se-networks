@@ -1,4 +1,4 @@
-# Low-Latency Transformer Inference on FPGAs for Cardiac Anomaly Detection
+# Hardware-Efficient Squeeze-and-Excitation Networks for Real-Time ECG Anomaly Detection Using hls4ml on FPGAs
 
 Implementation of a hardware-aware SE-based ECG anomaly detection network deployed using hls4ml and Vivado HLS.
 
