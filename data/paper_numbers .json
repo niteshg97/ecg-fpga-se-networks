@@ -1,0 +1,128 @@
+{
+  "dataset": {
+    "train_total": 500,
+    "train_normal": 292,
+    "train_anomaly": 208,
+    "test_total": 4500,
+    "test_normal": 2627,
+    "test_anomaly": 1873
+  },
+  "model": {
+    "total_params": 1674,
+    "trainable_params": 1546,
+    "architecture": "SE channel-attention after GlobalAveragePooling1D. No broadcasting \u2014 all Multiply ops use same-shape (16,) tensors. Logit model (Dense(2), no softmax) converted to FPGA."
+  },
+  "training_seeds": [
+    42,
+    123,
+    456,
+    789,
+    2024
+  ],
+  "class_weights": {
+    "0": 0.8561643835616438,
+    "1": 1.2019230769230769
+  },
+  "multi_seed_summary": {
+    "accuracy": {
+      "mean": 0.8549777777777778,
+      "std": 0.0910368911791014
+    },
+    "sensitivity": {
+      "mean": 0.6781633742658836,
+      "std": 0.21907234773289172
+    },
+    "specificity": {
+      "mean": 0.9810430148458318,
+      "std": 0.012651283362396912
+    },
+    "f1": {
+      "mean": 0.7710610408131797,
+      "std": 0.19258701397658906
+    },
+    "auc": {
+      "mean": 0.8967563015065327,
+      "std": 0.022157654589176096
+    }
+  },
+  "best_seed": 42,
+  "best_model_full_test": {
+    "accuracy": 0.9117777777777778,
+    "sensitivity": 0.8419647624132408,
+    "specificity": 0.9615531023981728,
+    "precision": 0.9398092967818832,
+    "f1": 0.888200506899465,
+    "auc": 0.933190911823519,
+    "epochs_trained": 60
+  },
+  "hardware_eval_main": {
+    "fixed_point": "ap_fixed<24,12>",
+    "softmax_method": "numpy (hls4ml C-sim softmax bypassed)",
+    "n_verify": 1000,
+    "n_normal": 584,
+    "n_anomaly": 416,
+    "sw_accuracy": 0.913,
+    "sw_sensitivity": 0.84375,
+    "sw_specificity": 0.9623287671232876,
+    "sw_f1": 0.8897338403041825,
+    "sw_auc": 0.9287119665437302,
+    "hw_accuracy": 0.914,
+    "hw_sensitivity": 0.84375,
+    "hw_specificity": 0.964041095890411,
+    "hw_f1": 0.8908629441624365,
+    "hw_auc": 0.9283600335879874,
+    "logic_fidelity": 0.999,
+    "disagreements": 1
+  },
+  "hardware_eval_light": {
+    "fixed_point": "ap_fixed<12,6>",
+    "hw_accuracy": 0.36,
+    "hw_sensitivity": 0.32211538461538464,
+    "hw_specificity": 0.386986301369863,
+    "hw_f1": 0.2951541850220264,
+    "hw_auc": 0.28812401211801897,
+    "logic_fidelity": 0.382,
+    "disagreements": 618
+  },
+  "precision_sweep": {
+    "ap_fixed<16,8>": {
+      "auc": 0.718005115089514,
+      "sens": 0.6588235294117647,
+      "spec": 0.8,
+      "degenerate": false
+    },
+    "ap_fixed<20,10>": {
+      "auc": 0.9223017902813299,
+      "sens": 0.8,
+      "spec": 0.9652173913043478,
+      "degenerate": false
+    },
+    "ap_fixed<24,12>": {
+      "auc": 0.9240409207161127,
+      "sens": 0.8,
+      "spec": 0.9652173913043478,
+      "degenerate": false
+    },
+    "ap_fixed<12,6>": {
+      "auc": 0.26255754475703325,
+      "sens": 0.24705882352941178,
+      "spec": 0.45217391304347826,
+      "degenerate": false
+    },
+    "ap_fixed<8,4>": {
+      "auc": 0.5,
+      "sens": 0.0,
+      "spec": 1.0,
+      "degenerate": true
+    }
+  },
+  "fpga_config": {
+    "precision_main": "ap_fixed<24,12>",
+    "precision_light": "ap_fixed<12,6>",
+    "reuse_factor": 1,
+    "target_device": "xc7z020clg400-1",
+    "hls4ml_version": "1.3.0",
+    "model_converted": "logit_model (Dense(2) only, no softmax)",
+    "softmax_note": "hls4ml 1.3.0 C-simulation softmax bypassed. Raw logits output by FPGA; numpy_softmax applied in Python."
+  }
+}
