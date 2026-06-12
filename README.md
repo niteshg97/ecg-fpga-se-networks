@@ -34,7 +34,7 @@ The proposed **1,674-parameter** model achieves **AUC-ROC of 93.32%** in softwar
 
 ---
 
-## Results at a Glance
+## Results 
 
 ### Software Performance (ECG5000, N = 4,500)
 
@@ -71,30 +71,23 @@ The proposed **1,674-parameter** model achieves **AUC-ROC of 93.32%** in softwar
 ```
 ecg-fpga-se-networks/
 │
-├── 📓 notebook/
-│   └── ECG_FPGA_final.ipynb        # End-to-end pipeline: training → hls4ml conversion → evaluation
+├── notebook/
+│   └── ECG_FPGA_final.ipynb        # training → hls4ml conversion → evaluation
 │
-├── 🖼️  figures/
-│   ├── Full_Architecture.png        # SE-ECG model architecture diagram
-│   ├── hls4ml_workflow.png          # hls4ml codesign workflow
-│   ├── fig_ecg_samples.png          # Representative ECG waveforms
-│   ├── fig_class_distribution.png   # ECG5000 class distribution
-│   ├── fig_training_curves.png      # Multi-seed training dynamics
-│   ├── fig_sw_evaluation.png        # ROC curve and SW confusion matrix
-│   ├── fig_confusion_matrices.png   # SW vs HW confusion matrices
-│   └── fig_sw_hw_agreement.png      # Software–hardware prediction agreement
-│
-├── ⚙️  weights/
+├── figures
+│   
+│   
+├── weights/
 │   └── Model_weights/               # Saved Keras model weights (best seed = 42)
 │
-├── 🔧 hls_project/
+├── hls_project/
 │   ├── hls_ecg_main/                # HLS project: ap_fixed<24,12>, RF=1 (selected)
 │   └── hls_ecg_light/               # HLS project: ap_fixed<12,6>, RF=1 (ablation)
 │
-├── 📄 paper/
+├── paper/
 │   └── paper.tex                    # LaTeX source (arXiv preprint)
 │
-├── 📊 data/
+├── data/
 │   └── README.md                    # Data download instructions (see below)
 │
 ├── README.md
@@ -175,21 +168,7 @@ Or on **Google Colab** (recommended for GPU access):
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/<your-username>/ecg-fpga-se-networks/blob/main/notebook/ECG_FPGA_final.ipynb)
 
-### 2. Notebook Structure
-
-| Cell | Phase | Description |
-|---|---|---|
-| 1–2 | Setup | Install packages, configure hls4ml parser override |
-| 3–4 | Data | Load ECG5000, visualize waveforms and class distribution |
-| 5 | Architecture | Build `se_ecg_model` and `logit_model` |
-| 6 | Training | Multi-seed training with class weights and early stopping |
-| 7 | Evaluation | Software performance metrics and ROC curve |
-| 8 | FPGA Config | Configure hls4ml: `ap_fixed<24,12>`, RF=1, Latency strategy |
-| 9 | Precision Sweep | Evaluate 5 fixed-point configurations (8-bit to 24-bit) |
-| 10 | HW Validation | C-simulation, logic fidelity, SW–HW comparison |
-| 11 | Export | Save weights, figures, and results JSON |
-
-### 3. Load Pre-trained Weights
+### 2. Load Pre-trained Weights
 
 ```python
 import tf_keras as keras
@@ -205,7 +184,7 @@ full_model = keras.models.load_model('weights/Model_weights/full_model.h5')
 
 ## FPGA Deployment via hls4ml
 
-### ⚠️ Important: Softmax Bug Fix
+### Important: Softmax Bug Fix
 
 `hls4ml` 1.3.0 contains a **softmax normalization defect** in C-simulation where both class probabilities simultaneously exceed 0.5 (violating $\sum_k p_k = 1$). The fix implemented in this project:
 
@@ -283,11 +262,11 @@ A systematic five-point sweep identifies `ap_fixed<24,12>` as the minimum viable
 
 | Precision | HW AUC | Sensitivity | Specificity | Status |
 |---|:---:|:---:|:---:|:---:|
-| `ap_fixed<8,4>` | 0.500 | 0.000 | 1.000 | ❌ Degenerate |
-| `ap_fixed<12,6>` | 0.263 | 0.247 | 0.452 | ❌ Insufficient |
-| `ap_fixed<16,8>` | 0.718 | 0.659 | 0.800 | ⚠️ Functional |
-| `ap_fixed<20,10>` | 0.922 | 0.800 | 0.965 | ✅ Good |
-| **`ap_fixed<24,12>`** | **0.924** | **0.800** | **0.965** | ✅ **Selected** |
+| `ap_fixed<8,4>` | 0.500 | 0.000 | 1.000 | Degenerate |
+| `ap_fixed<12,6>` | 0.263 | 0.247 | 0.452 | Insufficient |
+| `ap_fixed<16,8>` | 0.718 | 0.659 | 0.800 | Functional |
+| `ap_fixed<20,10>` | 0.922 | 0.800 | 0.965 | Good |
+| **`ap_fixed<24,12>`** | **0.924** | **0.800** | **0.965** | **Selected** |
 
 > Configurations below 20-bit produce degenerate or substantially degraded inference due to insufficient fractional precision after Global Average Pooling over 140 time steps.
 
@@ -295,28 +274,12 @@ A systematic five-point sweep identifies `ap_fixed<24,12>` as the minimum viable
 
 ## Model Architecture
 
-```
-Input  (140, 1)
-  │
-  ├─ Dense(16) + BatchNorm + ReLU          [time-distributed]   →  (140, 16)
-  │
-  ├─ Dense(32) + BatchNorm + ReLU          [time-distributed]   →  (140, 32)
-  ├─ Dense(16)                             [time-distributed]   →  (140, 16)
-  ├─ Add ──────────────────────────────── [residual skip]       →  (140, 16)
-  ├─ BatchNorm                                                   →  (140, 16)
-  │
-  ├─ GlobalAveragePooling1D                                      →  (16,)
-  │
-  ├─ Dense(8,  ReLU)                       [SE squeeze]         →  (8,)
-  ├─ Dense(16, Sigmoid)                    [SE excite]          →  (16,)
-  ├─ Multiply ─────────────────────────── [channel attention]   →  (16,)
-  ├─ Add ──────────────────────────────── [residual skip]       →  (16,)
-  │
-  └─ Dense(2)                              [logits → FPGA]      →  (2,)
-       └─ Softmax                          [training only]      →  (2,)
+<p align="center">
+  <img src="figures/Full_Architecture.png" alt="SE-ECG Architecture" width="720"/>
+</p>
 
-Total Parameters : 1,674  (1,546 trainable | 128 non-trainable BN)
-```
+
+
 
 **Why SE attention after pooling?**
 Placing SE attention on the post-pooled `(16,)` vector ensures all `Multiply` and `Add` operations use operands of **identical shape**, eliminating the tensor-broadcast operations that hls4ml incorrectly handles when attention weights `(16,)` are applied to pre-pooled feature maps `(140, 16)`.
