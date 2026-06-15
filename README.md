@@ -1,4 +1,4 @@
-# Hardware-Aware Squeeze-and-Excitation Networks for Real-Time ECG Anomaly Detection on FPGAs
+# Hardware-Efficient Squeeze-and-Excitation Networks for Real-Time ECG Anomaly Detection on FPGAs
 
 <p align="center">
   <img src="figures/Full_Architecture.png" alt="SE-ECG Architecture" width="720"/>
