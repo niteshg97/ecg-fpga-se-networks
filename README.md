@@ -73,7 +73,14 @@ ecg-fpga-se-networks/
 │
 ├── notebook/
 │   └── ECG_FPGA_final.ipynb        # training → hls4ml conversion → evaluation
-│
+├── src/                         
+│   ├── config.py
+│   ├── data.py
+│   ├── model.py
+│   ├── train.py
+│   ├── evaluate.py
+│   ├── fpga_deploy.py
+│   └── main.py
 ├── figures
 │   
 │   
@@ -83,9 +90,6 @@ ecg-fpga-se-networks/
 ├── hls_project/
 │   ├── hls_ecg_main/                # HLS project: ap_fixed<24,12>, RF=1 (selected)
 │   └── hls_ecg_light/               # HLS project: ap_fixed<12,6>, RF=1 (ablation)
-│
-├── paper/
-│   └── paper.tex                    # LaTeX source (arXiv preprint)
 │
 ├── data/
 │   └── README.md                    # Data download instructions (see below)
