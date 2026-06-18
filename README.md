@@ -170,8 +170,6 @@ jupyter notebook notebook/ECG_FPGA_final.ipynb
 
 Or on **Google Colab** (recommended for GPU access):
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/<your-username>/ecg-fpga-se-networks/blob/main/notebook/ECG_FPGA_final.ipynb)
-
 ### 2. Load Pre-trained Weights
 
 ```python
@@ -279,11 +277,10 @@ A systematic five-point sweep identifies `ap_fixed<24,12>` as the minimum viable
 ## Model Architecture
 
 <p align="center">
-  <img src="figures/Full_Architecture.png" alt="SE-ECG Architecture" width="720"/>
+  <img src="https://github.com/user-attachments/assets/1edbdb61-a2b0-45ba-b684-b1652246617a"
+       alt="SE-ECG Architecture"
+       width="490">
 </p>
-
-
-
 
 **Why SE attention after pooling?**
 Placing SE attention on the post-pooled `(16,)` vector ensures all `Multiply` and `Add` operations use operands of **identical shape**, eliminating the tensor-broadcast operations that hls4ml incorrectly handles when attention weights `(16,)` are applied to pre-pooled feature maps `(140, 16)`.
