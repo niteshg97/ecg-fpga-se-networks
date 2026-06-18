@@ -5,7 +5,7 @@ Central configuration for the SE-ECG FPGA pipeline.
 Edit this file to change hyperparameters, paths, or FPGA settings.
 """
 
-# ── Paths ─────────────────────────────────────────────────────────────────────
+# Paths 
 DATA_DIR        = "data"
 WEIGHTS_DIR     = "weights/Model_weights"
 FIGURES_DIR     = "figures"
@@ -14,21 +14,21 @@ HLS_DIR_MAIN    = "hls_project/hls_ecg_main"
 HLS_DIR_LIGHT   = "hls_project/hls_ecg_light"
 HLS_SWEEP_DIR   = "hls_project/sweep"
 
-# ── Dataset ───────────────────────────────────────────────────────────────────
+#  Dataset 
 DATASET_NAME  = "ECG5000"
 N_TIMESTEPS   = 140
 N_CLASSES     = 2
 
-# ── Multi-seed training ───────────────────────────────────────────────────────
+# Multi-seed training 
 RANDOM_SEEDS  = [42, 123, 456, 789, 2024]
 BEST_SEED     = 42           # Seed that produced the highest validation AUC
 
-# ── Architecture ──────────────────────────────────────────────────────────────
+# Architecture 
 EMBED_DIM     = 16           # Embedding / output channel dimension (C)
 FFN_DIM       = 32           # Feed-forward expansion dimension
 SE_REDUCTION  = 8            # SE bottleneck dimension (reduction ratio = C / r)
 
-# ── Training ──────────────────────────────────────────────────────────────────
+# Training 
 LEARNING_RATE = 5e-4
 BATCH_SIZE    = 32
 MAX_EPOCHS    = 60
@@ -37,7 +37,7 @@ LR_PATIENCE   = 5            # ReduceLROnPlateau patience
 LR_FACTOR     = 0.5          # Learning rate reduction factor
 MIN_LR        = 1e-6
 
-# ── FPGA / hls4ml ─────────────────────────────────────────────────────────────
+# FPGA / hls4ml
 FPGA_PART       = "xc7z020clg400-1"   # Xilinx PYNQ-Z2
 REUSE_FACTOR    = 1                    # 1 = full loop unrolling (min latency)
 CLOCK_MHZ       = 100
@@ -53,7 +53,7 @@ PRECISION_SWEEP = [
     "ap_fixed<24,12>",
 ]
 
-# ── Hardware validation ────────────────────────────────────────────────────────
+#  Hardware validation 
 N_VERIFY = 1000    # Stratified subset size for SW-HW comparison
 N_SWEEP  = 200     # Stratified subset size for the precision sweep
 
