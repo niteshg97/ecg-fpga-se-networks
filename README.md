@@ -70,7 +70,9 @@ ecg-fpga-se-networks/
 │
 ├── notebook/
 │   └── ECG_FPGA_final.ipynb        # training → hls4ml conversion → evaluation
-├── src/                         
+│ 
+│ 
+├── src/                            # Full code                   
 │   ├── config.py
 │   ├── data.py
 │   ├── model.py
@@ -78,6 +80,8 @@ ecg-fpga-se-networks/
 │   ├── evaluate.py
 │   ├── fpga_deploy.py
 │   └── main.py
+│
+│ 
 ├── figures
 │   
 │   
