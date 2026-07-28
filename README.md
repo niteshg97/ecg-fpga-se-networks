@@ -1,6 +1,5 @@
 # Hardware-Efficient Squeeze-and-Excitation Networks for Real-Time ECG Anomaly Detection on FPGAs
 
-
 <p align="center">
   <a href="https://arxiv.org/abs/XXXX.XXXXX">
     <img src="https://img.shields.io/badge/arXiv-XXXX.XXXXX-b31b1b?style=for-the-badge&logo=arxiv" alt="arXiv"/>
@@ -18,38 +17,52 @@
 
 This repository contains the complete implementation of a **hardware-efficient Squeeze-and-Excitation (SE) channel-attention network** for real-time cardiac anomaly detection on FPGAs, deployed end-to-end via the [`hls4ml`](https://fastmachinelearning.org/hls4ml/) codesign framework.
 
-The proposed **1,674-parameter** model achieves **AUC-ROC of 93.32%** in software and retains **92.84% AUC** after 24-bit fixed-point conversion, with a **logic fidelity of 99.9%** between floating-point and hardware predictions. Vivado synthesis on the **Xilinx xc7z020clg400-1** yields a **2.0 µs inference latency** at 100 MHz — approximately **140,000× faster** than the real-time requirement for continuous 500 Hz ECG monitoring.
-
-### Key Contributions
-
-| # | Contribution |
-|---|---|
-| 1 | **Hardware-compatible SE attention** — Placing SE attention after Global Average Pooling eliminates tensor-broadcasting operations that cause incorrect HLS code generation in hls4ml |
-| 2 | **hls4ml softmax fix** — Documents and resolves a softmax normalization defect in hls4ml 1.3.0 C-simulation where both class probabilities simultaneously exceed 0.5 |
-| 3 | **Precision characterization** — Five-point sweep (8-bit → 24-bit) identifies `ap_fixed<24,12>` as the minimum viable precision for 140-step cardiac sequences |
-| 4 | **End-to-end FPGA validation** — Complete software-to-hardware pipeline with 99.9% logic fidelity and 2.0 µs synthesized latency |
+The proposed **1,674-parameter** model achieves an **AUC-ROC of 93.32%** in software and retains **92.84% AUC** after 24-bit fixed-point conversion, with a **logic fidelity of 99.9%** between floating-point and hardware predictions. Vivado synthesis on the **Xilinx xc7z020clg400-1** yields a **2.0 µs inference latency** at 100 MHz — approximately **140,000× faster** than the real-time requirement for continuous 500 Hz ECG monitoring.
 
 ---
 
-## Results 
+## Key Contributions
+
+| # | Contribution |
+|---|---|
+| 1 | **Hardware-compatible SE attention** — Placing SE attention *after* Global Average Pooling eliminates tensor-broadcasting operations that cause silent incorrect HLS code generation in hls4ml 1.3.0 |
+| 2 | **hls4ml softmax inference fix** — Documents and resolves a silent inference defect in hls4ml 1.3.0 C-simulation: the fixed-point exponential LUT produces correctly normalized outputs (Σpk = 1.0) but causes up to 100% of argmax decisions to flip relative to the float32 reference depending on weight distribution (see [hls4ml #1443](https://github.com/fastmachinelearning/hls4ml/issues/1443)) |
+| 3 | **Precision characterization** — Five-point sweep (8-bit → 24-bit) identifies `ap_fixed<24,12>` as the minimum viable precision for 140-step cardiac sequences |
+| 4 | **End-to-end FPGA validation** — Complete software-to-hardware pipeline with 99.9% logic fidelity and 2.0 µs synthesized latency on Xilinx xc7z020clg400-1 |
+
+---
+
+## Results
 
 ### Software Performance (ECG5000, N = 4,500)
 
 | | AUC-ROC | Accuracy | Sensitivity | Specificity | F1-Score |
-|---|---|---|---|---|---|
+|---|:---:|:---:|:---:|:---:|:---:|
 | **Best Seed (42)** | **93.32%** | **91.18%** | **84.20%** | **96.16%** | **88.82%** |
 | Mean ± Std (5 seeds) | 89.68 ± 2.22% | 85.50 ± 9.10% | 67.82 ± 21.91% | 98.10 ± 1.27% | 77.11 ± 19.26% |
 
-### Software vs. Hardware (ap_fixed\<24,12\>, N = 1,000)
+### Software vs. Hardware (`ap_fixed<24,12>`, N = 1,000 stratified subset)
 
-| Metric | SW (float32) | HW (ap_fixed\<24,12\>) | Δ |
+| Metric | SW (float32) | HW (ap\_fixed\<24,12\>) | Δ |
 |---|:---:|:---:|:---:|
 | AUC-ROC | 92.87% | 92.84% | −0.03% |
 | Accuracy | 91.30% | 91.40% | +0.10% |
 | Sensitivity | 84.38% | 84.38% | 0.00% |
 | Specificity | 96.23% | 96.40% | +0.17% |
 | F1-Score | 88.97% | 89.09% | +0.12% |
-| **Logic Fidelity** | — | **99.90%** | — |
+| **Logic Fidelity (Φ)** | — | **99.90% (999/1000)** | — |
+
+### Fixed-Point Precision Sweep (N = 200 balanced subset)
+
+| Precision | HW AUC | Sensitivity | Status |
+|---|:---:|:---:|:---:|
+| `ap_fixed<8,4>` | 0.500 | 0.000 | ❌ Degenerate |
+| `ap_fixed<12,6>` | 0.263 | 0.247 | ❌ Insufficient |
+| `ap_fixed<16,8>` | 0.718 | 0.659 | ⚠️ Functional |
+| `ap_fixed<20,10>` | 0.922 | 0.800 | ✅ Good |
+| **`ap_fixed<24,12>`** | **0.924** | **0.800** | ✅ **Selected** |
+
+> Configurations below 20-bit produce degenerate or substantially degraded inference due to insufficient fractional precision after Global Average Pooling over 140 time steps.
 
 ### FPGA Synthesis (Xilinx xc7z020clg400-1, 100 MHz)
 
@@ -69,31 +82,31 @@ The proposed **1,674-parameter** model achieves **AUC-ROC of 93.32%** in softwar
 ecg-fpga-se-networks/
 │
 ├── notebook/
-│   └── ECG_FPGA_final.ipynb        # training → hls4ml conversion → evaluation
-│ 
-│ 
-├── src/                            # Full code                   
-│   ├── config.py
-│   ├── data.py
-│   ├── model.py
-│   ├── train.py
-│   ├── evaluate.py
-│   ├── fpga_deploy.py
-│   └── main.py
+│   └── ECG_FPGA_final.ipynb        # Complete pipeline: training → hls4ml → evaluation
 │
-│ 
-├── figures
-│   
-│   
+├── src/                            # Modular Python source
+│   ├── config.py                   # Hyperparameters, paths, FPGA settings
+│   ├── data.py                     # ECG5000 loading, class weights, stratified subset
+│   ├── model.py                    # SE-ECG architecture, logit sub-model extraction
+│   ├── train.py                    # Multi-seed training, callbacks, summary
+│   ├── evaluate.py                 # Metrics, logic fidelity, all plot functions
+│   ├── fpga_deploy.py              # hls4ml conversion, C-simulation, precision sweep
+│   └── main.py                     # CLI entry point (--skip-training, --synth, etc.)
+│
+├── figures/                        # Generated plots (training curves, ROC, confusion matrices)
+│
 ├── weights/
-│   └── Model_weights/               # Saved Keras model weights (best seed = 42)
+│   └── Model_weights/              # Saved Keras weights (best seed = 42)
 │
 ├── hls_project/
-│   ├── hls_ecg_main/                # HLS project: ap_fixed<24,12>, RF=1 (selected)
-│   └── hls_ecg_light/               # HLS project: ap_fixed<12,6>, RF=1 (ablation)
+│   ├── hls_ecg_main/               # HLS project: ap_fixed<24,12>, RF=1 (selected)
+│   └── hls_ecg_light/              # HLS project: ap_fixed<12,6>, RF=1 (ablation)
 │
 ├── data/
-│   └── README.md                    # Data download instructions (see below)
+│   └── README.md                   # Data download instructions
+│
+├── paper/
+│   └── paper.tex                   # LaTeX source
 │
 ├── README.md
 └── LICENSE
@@ -118,10 +131,10 @@ cd ecg-fpga-se-networks
 pip install tensorflow==2.20
 pip install tf_keras
 pip install hls4ml[profiling]==1.3.0
-pip install scikit-learn matplotlib seaborn
+pip install scikit-learn matplotlib seaborn aeon
 ```
 
-> **Note:** `tf_keras` (legacy Keras 2) is required because hls4ml 1.3.0 uses the stable V2 graph parser. Standard Keras 3 (bundled with TF 2.16+) is not directly supported by hls4ml for model conversion.
+> **Note on tf_keras:** hls4ml 1.3.0 uses the stable V2 graph parser, which requires the legacy `tf_keras` (Keras 2). Standard Keras 3 (bundled with TF 2.16+) is not directly supported by hls4ml 1.3.0 for model conversion. The Keras version override `keras.__version__ = "2.15.0"` forces the correct internal parser — see `src/fpga_deploy.py` for details.
 
 ---
 
@@ -129,22 +142,14 @@ pip install scikit-learn matplotlib seaborn
 
 The **ECG5000** dataset is part of the [UCR Time Series Classification Archive](https://www.cs.ucr.edu/~eamonn/time_series_data_2018/).
 
-### Download
-
 ```bash
-# Option 1: Download directly from UCR (requires registration)
-# https://www.cs.ucr.edu/~eamonn/time_series_data_2018/ECG5000.zip
-
-# Option 2: Using the aeon package (used in the notebook)
+# Automatic download via aeon (used in the notebook)
 pip install aeon
-```
+# The notebook handles download and preprocessing automatically.
 
-The notebook automatically downloads and preprocesses ECG5000 via `aeon`. Place the data files in the `data/` directory if using local files:
-
-```
-data/
-├── ECG5000_TRAIN.txt
-└── ECG5000_TEST.txt
+# Manual: place files in data/ if using local copies
+# data/ECG5000_TRAIN.txt
+# data/ECG5000_TEST.txt
 ```
 
 ### Dataset Statistics
@@ -155,68 +160,164 @@ data/
 | Test | 4,500 | 2,627 (58.4%) | 1,873 (41.6%) |
 | **Total** | **5,000** | **2,919** | **2,081** |
 
-Each sample: **140 time steps**, single-channel ECG heartbeat segment.
+Each sample: **140 time steps**, single-channel ECG heartbeat segment, binary label (Normal / Anomaly).
 
 ---
 
 ## Usage
 
-### 1. Run the Full Pipeline (Recommended)
+### Run the Full Pipeline
 
-Open and run the notebook end-to-end:
+Open the notebook on Google Colab (recommended for free GPU access):
 
 ```bash
 jupyter notebook notebook/ECG_FPGA_final.ipynb
 ```
 
-Or on **Google Colab** (recommended for GPU access):
+### Run the Modular Pipeline via CLI
 
-### 2. Load Pre-trained Weights
+```bash
+# Full pipeline: train → sweep → hardware validation
+python src/main.py
+
+# Skip training (load saved weights)
+python src/main.py --skip-training
+
+# Skip precision sweep
+python src/main.py --skip-sweep
+
+# Also run Vivado RTL synthesis (requires Vivado HLS in PATH)
+python src/main.py --synth
+```
+
+### Load Pre-trained Weights
 
 ```python
 import tf_keras as keras
+from src.model import build_se_ecg_model, extract_logit_model
 
-# Load logit model (for FPGA inference)
-logit_model = keras.models.load_model('weights/Model_weights/logit_model.h5')
+# Rebuild architecture and load weights
+model = build_se_ecg_model()
+model.load_weights('weights/Model_weights/best_model.weights.h5')
 
-# Load full model (with softmax, for training/evaluation)
-full_model = keras.models.load_model('weights/Model_weights/full_model.h5')
+# Extract logit sub-model for FPGA conversion
+logit_model = extract_logit_model(model)
 ```
+
+---
+
+## Model Architecture
+
+<p align="center">
+  <img src="figures/Full_Architecture.png"
+       alt="SE-ECG Architecture"
+       width="500"/>
+</p>
+
+The network processes `(140, 1)` ECG inputs through three stages:
+
+**1. Temporal Encoder** — Three time-distributed Dense layers with BatchNormalization, ReLU, and a residual skip connection, producing `R ∈ ℝ^{140×16}`.
+
+**2. SE Channel-Attention Block** — Global Average Pooling collapses the temporal dimension to `z ∈ ℝ^{16}`. A bottleneck Dense(8, ReLU) → Dense(16, Sigmoid) network produces channel attention weights `s`, applied as `h = z + (s ⊙ z)`.
+
+**3. Output** — A Dense(2) logit layer produces raw class scores. The Softmax layer is excluded from the FPGA sub-model (see Softmax section below).
+
+**Why SE attention after pooling?**  
+Placing SE attention on the post-pooled `(16,)` vector ensures all `Multiply` and `Add` operations use identical-shape operands, eliminating the tensor-broadcast operations that hls4ml 1.3.0 handles incorrectly when attention weights `(16,)` are applied to pre-pooled feature maps `(140, 16)`.
+
+| Layer | Output Shape | Parameters |
+|---|:---:|:---:|
+| Input | (140, 1) | 0 |
+| Dense(16) + BN + ReLU [time-dist] | (140, 16) | 96 |
+| Dense(32) + BN + ReLU [time-dist] | (140, 32) | 672 |
+| Dense(16) + Add + BN [time-dist] | (140, 16) | 592 |
+| GlobalAveragePooling1D | (16,) | 0 |
+| Dense(8, ReLU) — SE squeeze | (8,) | 136 |
+| Dense(16, Sigmoid) — SE excite | (16,) | 144 |
+| Multiply + Add (residual) | (16,) | 0 |
+| **Dense(2) — logit output** ← FPGA boundary | **(2,)** | **34** |
+| Softmax † | (2,) | 0 |
+| **Total** | | **1,674** |
+
+† Excluded from FPGA sub-model.
+
+---
+
+## Training Details
+
+| Hyperparameter | Value |
+|---|---|
+| Optimizer | Adam |
+| Learning Rate | 5 × 10⁻⁴ |
+| Batch Size | 32 |
+| Max Epochs | 60 |
+| LR Reduction Factor | 0.5 (patience: 5 epochs) |
+| Early Stopping Patience | 12 epochs (val. loss) |
+| Class Weight — Normal | 0.856 |
+| Class Weight — Anomaly | 1.202 |
+| Random Seeds | 42, 123, 456, 789, 2024 |
+| Framework | TensorFlow 2.20 / tf\_keras |
+| Hardware | NVIDIA T4 (Google Colab) |
 
 ---
 
 ## FPGA Deployment via hls4ml
 
-### Important: Softmax Bug Fix
+### The Softmax Inference Defect in hls4ml 1.3.0
 
-`hls4ml` 1.3.0 contains a **softmax normalization defect** in C-simulation where both class probabilities simultaneously exceed 0.5 (violating $\sum_k p_k = 1$). The fix implemented in this project:
+> **Related open issue:** [fastmachinelearning/hls4ml #1443](https://github.com/fastmachinelearning/hls4ml/issues/1443)
+
+hls4ml 1.3.0 C-simulation (`hls_model.compile()` + `hls_model.predict()`) contains a softmax inference defect: the fixed-point exponential look-up table (LUT) produces **correctly normalized** class probabilities (`max|Σpk − 1| = 0.0` always), but introduces approximation errors that cause up to **100% of argmax classification decisions to differ** from the float32 reference depending on the model's weight distribution.
+
+The defect is **silent** — no error or warning is raised, and probabilities appear valid. It is weight-distribution dependent: models with near-boundary predictions (common in any trained classifier) are most severely affected.
+
+**Verified across 8 random weight seeds (N=200 fixed inputs, same architecture):**
+
+| Seed | HLS Softmax Flips | Logit-only Flips | Normalization |
+|---|:---:|:---:|:---:|
+| 0 | 94/200 (47%) | 0/200 | ✓ sum=1.0 |
+| 1 | **200/200 (100%)** | 10/200 | ✓ sum=1.0 |
+| 7 | 0/200 | 3/200 | ✓ sum=1.0 |
+| 99 | 94/200 (47%) | 0/200 | ✓ sum=1.0 |
+| 999 | 106/200 (53%) | 4/200 | ✓ sum=1.0 |
+
+**Fix:** convert only the logit sub-model (no softmax layer) and apply numerically stable Python softmax post-hardware:
 
 ```python
-# WRONG — do NOT convert the full model (softmax included)
+# ── Keras version override (required for hls4ml 1.3.0 V2 parser) ──
+import keras as _keras_compat
+_keras_compat.__version__ = "2.15.0"
+
+import hls4ml
+import numpy as np
+
+def numpy_softmax(logits):
+    """Numerically stable softmax — replaces defective HLS LUT."""
+    e = np.exp(logits - logits.max(axis=1, keepdims=True))
+    return e / e.sum(axis=1, keepdims=True)
+
+# ── WRONG: do NOT convert the full model (softmax inside HLS) ────
 # hls_model = hls4ml.converters.convert_from_keras_model(full_model, ...)
 
-# CORRECT — convert only the logit sub-model (Dense(2), no softmax)
+# ── CORRECT: convert logit sub-model only (Dense(2), no softmax) ─
 hls_model = hls4ml.converters.convert_from_keras_model(
-    logit_model,          # terminates at Dense(2)
+    logit_model,           # terminates at Dense(2), no Softmax layer
     hls_config=config,
     output_dir='hls_project/hls_ecg_main',
     part='xc7z020clg400-1'
 )
+hls_model.compile()
 
-# Apply softmax manually in Python after reading FPGA logit outputs
-def numpy_softmax(logits):
-    e = np.exp(logits - logits.max(axis=1, keepdims=True))
-    return e / e.sum(axis=1, keepdims=True)
-
-hw_proba = numpy_softmax(hls_model.predict(X_test))
+# Apply softmax in Python after reading FPGA logit outputs
+hw_logits = hls_model.predict(np.ascontiguousarray(X_test, dtype=np.float32))
+hw_proba  = numpy_softmax(hw_logits)   # correct, normalized probabilities
 ```
+
+This fix requires **no modification** to hls4ml source code and achieves **99.9% logic fidelity** (999/1,000 predictions agree with float32 Keras reference).
 
 ### hls4ml Configuration
 
 ```python
-import keras as _keras_compat
-_keras_compat.__version__ = "2.15.0"   # Force stable V2 parser
-
 config = hls4ml.utils.config_from_keras_model(
     logit_model,
     granularity='name',
@@ -238,18 +339,10 @@ for layer in config['LayerName']:
 | Converted Model | Logit sub-model (no softmax) |
 | Clock Target | 100 MHz |
 
-### Run C-Simulation
-
-```bash
-# Compile HLS project with g++
-cd hls_project/hls_ecg_main
-# hls_model.compile() in the notebook handles this automatically
-```
-
-### Vivado RTL Synthesis (requires local Linux/Windows + Vivado)
+### Vivado RTL Synthesis
 
 ```python
-# After hls4ml conversion, run synthesis:
+# After hls4ml conversion and C-simulation:
 hls_model.build(csim=False, synth=True, export=False)
 
 # Read synthesis report:
@@ -257,52 +350,7 @@ report = hls4ml.report.read_vivado_report('hls_project/hls_ecg_main')
 print(report)
 ```
 
----
-
-## Fixed-Point Precision Sweep
-
-A systematic five-point sweep identifies `ap_fixed<24,12>` as the minimum viable precision for 140-step cardiac sequences:
-
-| Precision | HW AUC | Sensitivity | Specificity | Status |
-|---|:---:|:---:|:---:|:---:|
-| `ap_fixed<8,4>` | 0.500 | 0.000 | 1.000 | Degenerate |
-| `ap_fixed<12,6>` | 0.263 | 0.247 | 0.452 | Insufficient |
-| `ap_fixed<16,8>` | 0.718 | 0.659 | 0.800 | Functional |
-| `ap_fixed<20,10>` | 0.922 | 0.800 | 0.965 | Good |
-| **`ap_fixed<24,12>`** | **0.924** | **0.800** | **0.965** | **Selected** |
-
-> Configurations below 20-bit produce degenerate or substantially degraded inference due to insufficient fractional precision after Global Average Pooling over 140 time steps.
-
----
-
-## Model Architecture
-
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/1edbdb61-a2b0-45ba-b684-b1652246617a"
-       alt="SE-ECG Architecture"
-       width="490">
-</p>
-
-**Why SE attention after pooling?**
-Placing SE attention on the post-pooled `(16,)` vector ensures all `Multiply` and `Add` operations use operands of **identical shape**, eliminating the tensor-broadcast operations that hls4ml incorrectly handles when attention weights `(16,)` are applied to pre-pooled feature maps `(140, 16)`.
-
----
-
-## Training Details
-
-| Hyperparameter | Value |
-|---|---|
-| Optimizer | Adam |
-| Learning Rate | 5 × 10⁻⁴ |
-| Batch Size | 32 |
-| Max Epochs | 60 |
-| LR Reduction Factor | 0.5 (patience: 5 epochs) |
-| Early Stopping Patience | 12 epochs (val. loss) |
-| Class Weight — Normal | 0.856 |
-| Class Weight — Anomaly | 1.202 |
-| Random Seeds | 42, 123, 456, 789, 2024 |
-| Framework | TensorFlow 2.20 / tf_keras |
-| Hardware | NVIDIA T4 (Google Colab) |
+> Vivado HLS (WebPACK edition, free for xc7z020) must be installed and available in PATH.
 
 ---
 
@@ -313,7 +361,7 @@ If you find this work useful, please cite:
 ```bibtex
 @article{kumar2025ecg_fpga,
   author    = {Kumar, Nitesh and Kumar, Ashwani},
-  title     = {Hardware-Aware Squeeze-and-Excitation Networks for
+  title     = {Hardware-Efficient Squeeze-and-Excitation Networks for
                Real-Time {ECG} Anomaly Detection on {FPGAs}},
   journal   = {arXiv preprint arXiv:XXXX.XXXXX},
   year      = {2025},
@@ -321,7 +369,7 @@ If you find this work useful, please cite:
 }
 ```
 
-> Update `XXXX.XXXXX` with your arXiv identifier after submission.
+> Replace `XXXX.XXXXX` with your arXiv identifier after submission.
 
 ---
 
@@ -330,10 +378,12 @@ If you find this work useful, please cite:
 | Paper | Venue | Relevance |
 |---|---|---|
 | [Fast inference of DNNs in FPGAs for particle physics](https://doi.org/10.1088/1748-0221/13/07/P07027) | JINST 2018 | Original hls4ml paper |
+| [hls4ml: An open-source codesign workflow](https://github.com/fastmachinelearning/hls4ml) | FPGA 2021 | hls4ml framework |
 | [Fast CNNs on FPGAs with hls4ml](https://doi.org/10.1088/2632-2153/ac0ea1) | MLST 2021 | Conv1D + hls4ml |
 | [Automatic heterogeneous quantization](https://doi.org/10.1038/s42256-021-00356-5) | Nat. Machine Intell. 2021 | Mixed-precision hls4ml |
 | [Squeeze-and-Excitation Networks](https://doi.org/10.1109/TPAMI.2019.2913372) | IEEE TPAMI 2020 | SE attention mechanism |
 | [Cardiologist-level arrhythmia detection](https://doi.org/10.1038/s41591-018-0268-3) | Nature Medicine 2019 | ECG DL benchmark |
+| [ECG heartbeat classification](https://doi.org/10.1109/ICHI.2018.00012) | ICHI 2018 | ECG5000 baseline |
 
 ---
 
@@ -345,8 +395,8 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 
 ## Acknowledgements
 
-- The [hls4ml](https://fastmachinelearning.org/hls4ml/) team (CERN / Fermilab / MIT) for the open-source codesign framework.
-- The [UCR Time Series Classification Archive](https://www.cs.ucr.edu/~eamonn/time_series_data_2018/) for the ECG5000 dataset.
+- The [hls4ml](https://fastmachinelearning.org/hls4ml/) team (CERN / Fermilab / MIT) for the open-source codesign framework that makes FPGA-based ML inference accessible beyond high-energy physics.
+- The [UCR Time Series Classification Archive](https://www.cs.ucr.edu/~eamonn/time_series_data_2018/) for the ECG5000 benchmark.
 - [National Institute of Technology Patna](https://www.nitp.ac.in/), Department of Electrical Engineering.
 
 ---
@@ -354,4 +404,6 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 <p align="center">
   Made with ❤️ at NIT Patna &nbsp;|&nbsp;
   <a href="mailto:niteshk.ug23.ee@nitp.ac.in">niteshk.ug23.ee@nitp.ac.in</a>
+  &nbsp;|&nbsp;
+  <a href="mailto:ashwani@nitp.ac.in">ashwani@nitp.ac.in</a>
 </p>
