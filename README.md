@@ -56,11 +56,11 @@ The proposed **1,674-parameter** model achieves an **AUC-ROC of 93.32%** in soft
 
 | Precision | HW AUC | Sensitivity | Status |
 |---|:---:|:---:|:---:|
-| `ap_fixed<8,4>` | 0.500 | 0.000 | ❌ Degenerate |
-| `ap_fixed<12,6>` | 0.263 | 0.247 | ❌ Insufficient |
-| `ap_fixed<16,8>` | 0.718 | 0.659 | ⚠️ Functional |
-| `ap_fixed<20,10>` | 0.922 | 0.800 | ✅ Good |
-| **`ap_fixed<24,12>`** | **0.924** | **0.800** | ✅ **Selected** |
+| `ap_fixed<8,4>` | 0.500 | 0.000 | Degenerate |
+| `ap_fixed<12,6>` | 0.263 | 0.247 | Insufficient |
+| `ap_fixed<16,8>` | 0.718 | 0.659 | Functional |
+| `ap_fixed<20,10>` | 0.922 | 0.800 | Good |
+| **`ap_fixed<24,12>`** | **0.924** | **0.800** | **Selected** |
 
 > Configurations below 20-bit produce degenerate or substantially degraded inference due to insufficient fractional precision after Global Average Pooling over 140 time steps.
 
@@ -91,7 +91,7 @@ ecg-fpga-se-networks/
 │   ├── train.py                    # Multi-seed training, callbacks, summary
 │   ├── evaluate.py                 # Metrics, logic fidelity, all plot functions
 │   ├── fpga_deploy.py              # hls4ml conversion, C-simulation, precision sweep
-│   └── main.py                     # CLI entry point (--skip-training, --synth, etc.)
+│   └── main.py                     # Full Code 
 │
 ├── figures/                        # Generated plots (training curves, ROC, confusion matrices)
 │
@@ -125,7 +125,7 @@ ecg-fpga-se-networks/
 ### Install Dependencies
 
 ```bash
-git clone https://github.com/<your-username>/ecg-fpga-se-networks.git
+git clone https://github.com/niteshg97/ecg-fpga-se-networks.git
 cd ecg-fpga-se-networks
 
 pip install tensorflow==2.20
@@ -209,9 +209,9 @@ logit_model = extract_logit_model(model)
 ## Model Architecture
 
 <p align="center">
-  <img src="figures/Full_Architecture.png"
+  <img src="https://github.com/user-attachments/assets/1edbdb61-a2b0-45ba-b684-b1652246617a"
        alt="SE-ECG Architecture"
-       width="500"/>
+       width="490">
 </p>
 
 The network processes `(140, 1)` ECG inputs through three stages:
@@ -364,12 +364,11 @@ If you find this work useful, please cite:
   title     = {Hardware-Efficient Squeeze-and-Excitation Networks for
                Real-Time {ECG} Anomaly Detection on {FPGAs}},
   journal   = {arXiv preprint arXiv:XXXX.XXXXX},
-  year      = {2025},
+  year      = {2026},
   url       = {https://arxiv.org/abs/XXXX.XXXXX}
 }
 ```
 
-> Replace `XXXX.XXXXX` with your arXiv identifier after submission.
 
 ---
 
