@@ -26,7 +26,7 @@ The proposed **1,674-parameter** model achieves an **AUC-ROC of 93.32%** in soft
 | # | Contribution |
 |---|---|
 | 1 | **Hardware-compatible SE attention** — Placing SE attention *after* Global Average Pooling eliminates tensor-broadcasting operations that cause silent incorrect HLS code generation in hls4ml 1.3.0 |
-| 2 | **hls4ml softmax inference fix** — Documents and resolves a silent inference defect in hls4ml 1.3.0 C-simulation: the fixed-point exponential LUT produces correctly normalized outputs (Σpk = 1.0) but causes up to 100% of argmax decisions to flip relative to the float32 reference depending on weight distribution (see [hls4ml #1443](https://github.com/fastmachinelearning/hls4ml/issues/1443)) |
+| 2 | **hls4ml softmax inference fix** — Documents and resolves a silent inference defect in hls4ml 1.3.0 C-simulation: the fixed-point exponential LUT produces correctly normalized outputs (Σpk = 1.0) but causes up to 100% of argmax decisions to flip relative to the float32 reference depending on weight distribution |
 | 3 | **Precision characterization** — Five-point sweep (8-bit → 24-bit) identifies `ap_fixed<24,12>` as the minimum viable precision for 140-step cardiac sequences |
 | 4 | **End-to-end FPGA validation** — Complete software-to-hardware pipeline with 99.9% logic fidelity and 2.0 µs synthesized latency on Xilinx xc7z020clg400-1 |
 
